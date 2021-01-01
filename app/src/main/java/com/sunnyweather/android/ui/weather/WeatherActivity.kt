@@ -1,12 +1,17 @@
 package com.sunnyweather.android.ui.weather
 
+import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.ViewModelProvider
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.sunnyweather.android.R
 import com.sunnyweather.android.logic.model.Weather
 import com.sunnyweather.android.logic.model.getSky
@@ -15,9 +20,13 @@ import java.util.*
 
 class WeatherActivity : AppCompatActivity() {
 
-    private val viewModel by lazy {
+    val viewModel by lazy {
         ViewModelProvider(this).get(WeatherViewModel::class.java)
     }
+
+    lateinit var drawerLayout: DrawerLayout
+    private lateinit var navButton: Button
+    private lateinit var swipeRefresh: SwipeRefreshLayout
 
     //当前天气信息控件
     private lateinit var placeName: TextView
@@ -70,11 +79,41 @@ class WeatherActivity : AppCompatActivity() {
                 Toast.makeText(this, "无法成功获取天气信息", Toast.LENGTH_LONG).show()
                 it.exceptionOrNull()?.printStackTrace()
             }
+            swipeRefresh.isRefreshing = false
         }
+        swipeRefresh.setColorSchemeResources(R.color.design_default_color_primary)
+        refreshWeather()
+        swipeRefresh.setOnRefreshListener {
+            refreshWeather()
+        }
+
+        navButton.setOnClickListener {
+            drawerLayout.openDrawer(GravityCompat.START)
+        }
+        drawerLayout.addDrawerListener(object : DrawerLayout.DrawerListener {
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {}
+
+            override fun onDrawerOpened(drawerView: View) {}
+
+            override fun onDrawerClosed(drawerView: View) {
+                val manager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                manager.hideSoftInputFromWindow(drawerView.windowToken, InputMethodManager.HIDE_NOT_ALWAYS)
+            }
+
+            override fun onDrawerStateChanged(newState: Int) {}
+
+        })
+    }
+
+    fun refreshWeather() {
         viewModel.refreshWeather(viewModel.locationLng, viewModel.locationLat)
+        swipeRefresh.isRefreshing = true
     }
 
     private fun initView() {
+        drawerLayout = findViewById(R.id.drawerLayout)
+        navButton = findViewById(R.id.navButton)
+        swipeRefresh = findViewById(R.id.swipeRefresh)
         placeName = findViewById(R.id.placeName)
         currentTemp = findViewById(R.id.currentTemp)
         currentSky = findViewById(R.id.currentSky)
